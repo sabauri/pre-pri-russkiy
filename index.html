@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Тренажёр приставок: ПРИ / ПРЕ</title>
+  <style>
+    :root{--bg:#f7f7fb;--card:#ffffff;--accent:#2b8a3e;--danger:#d33;--muted:#666}
+    html,body{height:100%;margin:0;font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg);color:#111}
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:40px}
+    .card{width:920px;max-width:98%;background:var(--card);border-radius:12px;box-shadow:0 8px 30px rgba(20,20,60,0.08);padding:20px}
+    h1{margin:0 0 6px;font-size:20px}
+    p.lead{margin:0 0 12px;color:var(--muted)}
+    .word-area{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .char-input{width:56px;height:64px;border:0;border-bottom:2px solid #bbb;font-size:34px;text-align:center;outline:none;background:transparent;font-weight:700;padding:4px;margin:0 4px}
+    .char-input:focus{border-bottom-color:#333}
+    .controls{margin-top:18px;display:flex;gap:12px;align-items:center}
+    .indicator{width:18px;height:18px;border-radius:50%;background:#ddd}
+    .indicator.green{background:var(--accent)}
+    .indicator.red{background:var(--danger)}
+    .small{font-size:13px;color:var(--muted)}
+    .result{margin-top:18px;padding:14px;border-radius:8px;background:#f3f6f9}
+    .final{display:none;margin-top:18px}
+    .final.show{display:block}
+    .big-num{font-size:28px;font-weight:700}
+    .correct-word{color:var(--accent);font-weight:700}
+    .wrong-word{color:var(--danger);font-weight:700}
+    footer{margin-top:12px;font-size:13px;color:var(--muted)}
+    .consonant{font-weight:700;font-size:34px;padding:4px 6px}
+    .hint{font-size:13px;color:var(--muted);margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Тренажёр приставок: <span style="color:#3b82f6">ПРИ</span> / <span style="color:#ec4899">ПРЕ</span></h1>
+      <p class="lead">Появляется слово с пропущенной буквой. В большинстве слов пропускается 3‑я буква; в словосочетаниях <em>"камень преткновения"</em> и <em>"знак препинания"</em> пропускается первая буква «е» во втором слове. <strong>В поле можно вводить только букву «е» или «и» — ввод подтверждается автоматически.</strong></p>
+
+      <div id="main">
+        <div class="word-area">
+          <div id="wordDisplay" class="word" aria-live="polite"></div>
+        </div>
+
+        <div class="controls">
+          <div id="indicator" class="indicator" title="Результат"></div>
+          <div style="margin-left:auto" class="small">Осталось: <span id="leftCount">0</span></div>
+        </div>
+
+        <div id="resultBox" class="result" style="display:none"></div>
+
+      </div>
+
+      <div id="final" class="final">
+        <div>Сессия завершена.</div>
+        <div style="display:flex;gap:20px;align-items:center;margin-top:8px">
+          <div>Правильно: <span id="correctCount" class="big-num">0</span></div>
+          <div>Неправильно: <span id="wrongCount" class="big-num">0</span></div>
+        </div>
+        <div style="margin-top:12px">
+          <button id="restartBtn" class="btn">Заново</button>
+        </div>
+      </div>
+
+      <footer>Тут скрывается буква: вставляйте её — ответ примется автоматически.</footer>
+    </div>
+  </div>
+
+<script>
+// Список слов: ПРИ + ПРЕ
+const WORDS = [
+// ПРИ
+"приоритет","привилегия","прибаутка","привередливый","пригожий","прибор","приличия","пристойно","приесться","приказ","приключения","прикорнуть","присяга","притеснять","причина","причуда","притязание","природа","пример","прическа","прискорбно","приволье","прицел","примета","приверженец","прилежный","причиндалы","приятный","приватный","принцип","примат","примитив","пригодный","присниться","приключение","присудить","призвание","присмотреть","приспособить",
+// ПРЕ
+"прерогатива","преамбула","препятствие","препоны","прерия","презент","преимущество","преисподняя","прегрешения","пренебрегать","прекословить","препираться","престол","превратный","знак препинания","пресловутый","прельстить","преследовать","преподаватель","преподнести","препроводить","преподобный","камень преткновения","пресмыкаться","препарировать","прелюдия","премьера","престиж","президент","претензия","презумпция","превентивный","прелат","превалировать","президиум","претендент","преферанс","прецедент","препарат","преодолеть"
+];
+
+// Утилиты
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+let pool=[];
+let currentIndex=0;
+let currentWord='';
+let missingPos=2; // индекс в полной строке, который скрываем
+let stats={correct:0, wrong:0};
+
+const wordDisplay = document.getElementById('wordDisplay');
+const indicator = document.getElementById('indicator');
+const resultBox = document.getElementById('resultBox');
+const leftCount = document.getElementById('leftCount');
+const final = document.getElementById('final');
+const correctCount = document.getElementById('correctCount');
+const wrongCount = document.getElementById('wrongCount');
+const restartBtn = document.getElementById('restartBtn');
+
+function startSession(){
+  pool = WORDS.slice();
+  shuffle(pool);
+  currentIndex=0;
+  stats={correct:0, wrong:0};
+  final.classList.remove('show');
+  resultBox.style.display='none';
+  indicator.className='indicator';
+  leftCount.textContent = pool.length - currentIndex;
+  showNext();
+}
+
+// Если во фразе есть второе слово и в нём есть буква 'е',
+// то пропускаем первую встреченную 'е' во втором слове.
+// Иначе по умолчанию пропускаем 3-ю букву (индекс 2).
+function computeMissingPos(word){
+  const spaceIndex = word.indexOf(' ');
+  if(spaceIndex !== -1){
+    // найти старт второго слова (пропуская дополнительные пробелы)
+    let secondStart = spaceIndex + 1;
+    while(secondStart < word.length && word[secondStart] === ' ') secondStart++;
+    if(secondStart < word.length){
+      const second = word.slice(secondStart);
+      const posInSecond = second.toLowerCase().indexOf('е');
+      if(posInSecond !== -1){
+        return secondStart + posInSecond;
+      }
+    }
+  }
+  // fallback: третья буква
+  return Math.min(2, Math.max(0, word.length - 1));
+}
+
+// render: заменяем символ на позиции missingPos на input
+function renderWord(word){
+  wordDisplay.innerHTML='';
+  const chars = Array.from(word);
+  for(let i=0;i<chars.length;i++){
+    const ch = chars[i];
+    if(i===missingPos){
+      const inp = document.createElement('input');
+      inp.type='text'; inp.maxLength=1; inp.className='char-input';
+      inp.setAttribute('data-pos', i);
+      inp.setAttribute('aria-label', 'пропущенная буква');
+      // Разрешаем ввод только 'е' или 'и' (в разных раскладках/регистрах)
+      inp.addEventListener('input', (e)=>{
+        let v = e.target.value || '';
+        // Заменяем символы, оставляя только русские е или и (любого регистра)
+        v = v.replace(/[^еиЕИ]/g, '');
+        if(v.length>1) v = v[0];
+        e.target.value = v;
+        // если пользователь ввёл допустимую букву — подтверждаем ответ автоматически
+        if(v.length === 1){
+          processAnswer(v);
+        }
+      });
+      // Предотвращаем вставку неподходящих символов
+      inp.addEventListener('paste', (e)=>{
+        const text = (e.clipboardData||window.clipboardData).getData('text') || '';
+        if(!/[еиЕИ]/.test(text)){
+          e.preventDefault();
+        }
+      });
+      // Позволяем навигационные клавиши, Backspace, Delete и т.д.
+      inp.addEventListener('keydown', (e)=>{
+        const allowedNav = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'];
+        if(allowedNav.includes(e.key)) return;
+        // Если вводится служебная клавиша — пропускаем
+        if(e.key.length>1) return;
+        const ch = e.key;
+        if(!/[еиЕИ]/.test(ch)){
+          e.preventDefault();
+        }
+      });
+      wordDisplay.appendChild(inp);
+    } else {
+      const span = document.createElement('span'); span.className='consonant';
+      span.textContent = ch;
+      wordDisplay.appendChild(span);
+    }
+  }
+  // focus на input
+  const firstInput = wordDisplay.querySelector('input');
+  if(firstInput) firstInput.focus();
+}
+
+function getMissingChar(){
+  const w = currentWord;
+  return (Array.from(w)[missingPos]||'');
+}
+
+function getUserInput(){
+  const inp = wordDisplay.querySelector('input');
+  return inp ? (inp.value||'').trim() : '';
+}
+
+function processAnswer(rawUser){
+  const user = (rawUser||'').trim();
+  // если пусто — игнорируем
+  if(!user) return;
+  // проверяем, что введён допустимый символ
+  if(!/^[еиЕИ]$/.test(user)){
+    resultBox.style.display='block';
+    resultBox.innerHTML = '<div class="hint">Допустимы только буквы <strong>е</strong> или <strong>и</strong>.</div>';
+    const inp = wordDisplay.querySelector('input'); if(inp) inp.focus();
+    return;
+  }
+
+  const missing = getMissingChar();
+  if((user.normalize('NFC').toLowerCase()) === (missing.normalize('NFC').toLowerCase())){
+    stats.correct++;
+    indicator.className='indicator green';
+    resultBox.style.display='block';
+    resultBox.innerHTML = '<div class="correct-word">Правильно!</div>';
+    // перейти к следующему
+    currentIndex++;
+    setTimeout(showNext, 600);
+  } else {
+    stats.wrong++;
+    indicator.className='indicator red';
+    resultBox.style.display='block';
+    resultBox.innerHTML = '<div>Неправильно. Правильно: <span class="wrong-word">'+currentWord+'</span></div>';
+    currentIndex++;
+    setTimeout(showNext, 1200);
+  }
+}
+
+function showNext(){
+  if(currentIndex>=pool.length){
+    endSession();
+    return;
+  }
+  currentWord = pool[currentIndex];
+  missingPos = computeMissingPos(currentWord);
+  renderWord(currentWord);
+  indicator.className='indicator';
+  resultBox.style.display='none';
+  leftCount.textContent = pool.length - currentIndex - 1;
+}
+
+function endSession(){
+  correctCount.textContent = stats.correct;
+  wrongCount.textContent = stats.wrong;
+  final.classList.add('show');
+  wordDisplay.innerHTML='';
+  indicator.className='indicator';
+  resultBox.style.display='none';
+  leftCount.textContent = 0;
+}
+
+restartBtn.addEventListener('click', ()=> startSession());
+
+// Enter теперь не обязателен, но оставим: если нажали Enter и есть буква — обработаем
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){
+    const val = getUserInput(); if(val) processAnswer(val);
+  }
+});
+
+startSession();
+</script>
+</body>
+</html>
