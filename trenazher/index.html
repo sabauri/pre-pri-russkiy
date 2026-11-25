@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f3">
+  <meta name="description" content="Тренажёр по русскому языку для ЕГЭ. Вставляй И или Е в словах из конспекта и повторяй ошибки.">
+  <title>ПРИ или ПРЕ? · Тренажёр ЕГЭ</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./words.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="subject"><span class="subject-mark" aria-hidden="true">Аа</span>ЕГЭ · Русский язык</div>
+      <button id="restart" class="text-button" type="button">Начать заново</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="intro" aria-labelledby="title">
+      <h1 id="title">ПРИ <em>или</em> ПРЕ<span>?</span></h1>
+      <p>Вставь пропущенную букву в каждое слово.</p>
+    </section>
+
+    <div class="toolbar">
+      <div class="mode-switch" role="group" aria-label="Режим тренировки">
+        <button id="all-mode" type="button" aria-pressed="true">Все слова</button>
+        <button id="errors-mode" type="button" aria-pressed="false">Ошибки <span id="saved-count" class="count">0</span></button>
+      </div>
+      <span id="batch-number" class="batch-number" hidden></span>
+    </div>
+
+    <section aria-label="Текущие задания">
+      <div id="word-list" class="word-list"></div>
+      <div id="summary" class="summary" hidden>
+        <h2 id="summary-title" tabindex="-1"></h2>
+        <p id="summary-detail"></p>
+        <div class="summary-actions">
+          <button id="summary-primary" class="primary-button" type="button"></button>
+          <button id="summary-secondary" class="text-button" type="button" hidden>Новый круг</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="controls" class="controls">
+      <div id="letter-controls" class="letter-controls">
+        <div class="letter-buttons" role="group" aria-label="Выбрать букву">
+          <button class="letter-button" type="button" data-letter="и" aria-label="Буква И">И</button>
+          <button class="letter-button" type="button" data-letter="е" aria-label="Буква Е">Е</button>
+        </div>
+        <p>Нажми кнопку или введи букву с клавиатуры.</p>
+      </div>
+      <div id="review" class="review" hidden>
+        <div class="review-copy">
+          <p id="review-text"></p>
+          <div class="review-track" aria-hidden="true"><div id="review-fill"></div></div>
+        </div>
+        <button id="next" class="text-button" type="button">Дальше</button>
+      </div>
+    </div>
+
+    <section id="progress" class="progress-panel" aria-label="Прогресс тренировки">
+      <div class="progress-header">
+        <span>Слова</span>
+        <span class="progress-count"><strong id="answered">0</strong><span> из <span id="total">0</span></span></span>
+      </div>
+      <progress id="progress-bar" value="0" max="1" aria-label="Пройдено слов"></progress>
+      <div class="stats">
+        <span><i class="stat-dot dot-right" aria-hidden="true"></i>Верно <strong id="right-count">0</strong></span>
+        <span><i class="stat-dot dot-wrong" aria-hidden="true"></i>С ошибкой <strong id="wrong-count">0</strong></span>
+      </div>
+    </section>
+    <p id="announcement" class="sr-only" role="status"></p>
+    <noscript><p>Включи JavaScript в браузере, чтобы начать тренировку.</p></noscript>
+  </main>
+
+  <template id="word-template">
+    <article class="word-card">
+      <div class="word-copy">
+        <div class="word"><span class="leading"></span><span class="target"><span class="stem"></span><span class="gap"><span class="character" aria-hidden="true"></span><input class="letter-input" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="next" hidden></span><span class="tail"></span></span><span class="trailing"></span></div>
+        <p class="hint" hidden><span class="meaning"></span><span class="mistyped" hidden></span></p>
+      </div>
+      <div class="result" hidden><span class="result-mark" aria-hidden="true"></span><span class="result-text"></span></div>
+    </article>
+  </template>
+</body>
+</html>
